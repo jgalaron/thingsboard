@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,10 @@
  */
 package org.thingsboard.rule.engine.api;
 
+import com.datastax.driver.core.ResultSetFuture;
 import io.netty.channel.EventLoopGroup;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.thingsboard.common.util.ListeningExecutor;
 import org.thingsboard.server.common.data.Customer;
 import org.thingsboard.server.common.data.Device;
 import org.thingsboard.server.common.data.alarm.Alarm;
@@ -34,7 +37,7 @@ import org.thingsboard.server.dao.customer.CustomerService;
 import org.thingsboard.server.dao.dashboard.DashboardService;
 import org.thingsboard.server.dao.device.DeviceService;
 import org.thingsboard.server.dao.entityview.EntityViewService;
-import org.thingsboard.server.dao.nosql.CassandraBufferedRateExecutor;
+import org.thingsboard.server.dao.nosql.CassandraStatementTask;
 import org.thingsboard.server.dao.relation.RelationService;
 import org.thingsboard.server.dao.rule.RuleChainService;
 import org.thingsboard.server.dao.tenant.TenantService;
@@ -120,6 +123,12 @@ public interface TbContext {
 
     ScriptEngine createJsScriptEngine(String script, String... argNames);
 
+    void logJsEvalRequest();
+
+    void logJsEvalResponse();
+
+    void logJsEvalFailure();
+
     String getNodeId();
 
     RuleChainTransactionService getRuleChainTransactionService();
@@ -128,7 +137,9 @@ public interface TbContext {
 
     CassandraCluster getCassandraCluster();
 
-    CassandraBufferedRateExecutor getCassandraBufferedRateExecutor();
+    ResultSetFuture submitCassandraTask(CassandraStatementTask task);
 
+    RedisTemplate<String, Object> getRedisTemplate();
 
+    String getServerAddress();
 }

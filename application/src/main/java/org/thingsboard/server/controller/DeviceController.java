@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,9 @@ import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.TextPageData;
 import org.thingsboard.server.common.data.page.TextPageLink;
 import org.thingsboard.server.common.data.security.DeviceCredentials;
-import org.thingsboard.server.controller.claim.data.ClaimRequest;
+import org.thingsboard.server.common.data.ClaimRequest;
 import org.thingsboard.server.dao.device.claim.ClaimResponse;
+import org.thingsboard.server.dao.device.claim.ClaimResult;
 import org.thingsboard.server.dao.exception.IncorrectParameterException;
 import org.thingsboard.server.dao.model.ModelConstants;
 import org.thingsboard.server.service.security.model.SecurityUser;
@@ -81,7 +82,8 @@ public class DeviceController extends BaseController {
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @RequestMapping(value = "/device", method = RequestMethod.POST)
     @ResponseBody
-    public Device saveDevice(@RequestBody Device device) throws ThingsboardException {
+    public Device saveDevice(@RequestBody Device device,
+                             @RequestParam(name = "accessToken", required = false) String accessToken) throws ThingsboardException {
         try {
             device.setTenantId(getCurrentUser().getTenantId());
 
@@ -90,7 +92,7 @@ public class DeviceController extends BaseController {
             accessControlService.checkPermission(getCurrentUser(), Resource.DEVICE, operation,
                     device.getId(), device);
 
-            Device savedDevice = checkNotNull(deviceService.saveDevice(device));
+            Device savedDevice = checkNotNull(deviceService.saveDeviceWithAccessToken(device, accessToken));
 
             actorService
                     .onDeviceNameOrTypeUpdate(
@@ -406,19 +408,23 @@ public class DeviceController extends BaseController {
                     device.getId(), device);
             String secretKey = getSecretKey(claimRequest);
 
-            ListenableFuture<ClaimResponse> future = claimDevicesService.claimDevice(device, customerId, secretKey);
-            Futures.addCallback(future, new FutureCallback<ClaimResponse>() {
+            ListenableFuture<ClaimResult> future = claimDevicesService.claimDevice(device, customerId, secretKey);
+            Futures.addCallback(future, new FutureCallback<ClaimResult>() {
                 @Override
-                public void onSuccess(@Nullable ClaimResponse result) {
+                public void onSuccess(@Nullable ClaimResult result) {
                     HttpStatus status;
-                    if (result.equals(ClaimResponse.SUCCESS)) {
-                        status = HttpStatus.OK;
+                    if (result != null) {
+                        if (result.getResponse().equals(ClaimResponse.SUCCESS)) {
+                            status = HttpStatus.OK;
+                            deferredResult.setResult(new ResponseEntity<>(result, status));
+                        } else {
+                            status = HttpStatus.BAD_REQUEST;
+                            deferredResult.setResult(new ResponseEntity<>(result.getResponse(), status));
+                        }
                     } else {
-                        status = HttpStatus.BAD_REQUEST;
+                        deferredResult.setResult(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
                     }
-                    deferredResult.setResult(new ResponseEntity<>(result, status));
                 }
-
                 @Override
                 public void onFailure(Throwable t) {
                     deferredResult.setErrorResult(t);

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,10 +28,12 @@ import org.thingsboard.server.common.data.AdminSettings;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.dao.settings.AdminSettingsService;
+import org.thingsboard.server.common.data.security.model.SecuritySettings;
 import org.thingsboard.server.service.security.permission.Operation;
 import org.thingsboard.server.service.security.permission.Resource;
+import org.thingsboard.server.service.security.system.SystemSecurityService;
 import org.thingsboard.server.service.update.UpdateService;
-import org.thingsboard.server.service.update.model.UpdateMessage;
+import org.thingsboard.server.common.data.UpdateMessage;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -42,6 +44,9 @@ public class AdminController extends BaseController {
     
     @Autowired
     private AdminSettingsService adminSettingsService;
+
+    @Autowired
+    private SystemSecurityService systemSecurityService;
 
     @Autowired
     private UpdateService updateService;
@@ -69,6 +74,31 @@ public class AdminController extends BaseController {
                 mailService.updateMailConfiguration();
             }
             return adminSettings;
+        } catch (Exception e) {
+            throw handleException(e);
+        }
+    }
+
+    @PreAuthorize("hasAuthority('SYS_ADMIN')")
+    @RequestMapping(value = "/securitySettings", method = RequestMethod.GET)
+    @ResponseBody
+    public SecuritySettings getSecuritySettings() throws ThingsboardException {
+        try {
+            accessControlService.checkPermission(getCurrentUser(), Resource.ADMIN_SETTINGS, Operation.READ);
+            return checkNotNull(systemSecurityService.getSecuritySettings(TenantId.SYS_TENANT_ID));
+        } catch (Exception e) {
+            throw handleException(e);
+        }
+    }
+
+    @PreAuthorize("hasAuthority('SYS_ADMIN')")
+    @RequestMapping(value = "/securitySettings", method = RequestMethod.POST)
+    @ResponseBody
+    public SecuritySettings saveSecuritySettings(@RequestBody SecuritySettings securitySettings) throws ThingsboardException {
+        try {
+            accessControlService.checkPermission(getCurrentUser(), Resource.ADMIN_SETTINGS, Operation.WRITE);
+            securitySettings = checkNotNull(systemSecurityService.saveSecuritySettings(TenantId.SYS_TENANT_ID, securitySettings));
+            return securitySettings;
         } catch (Exception e) {
             throw handleException(e);
         }

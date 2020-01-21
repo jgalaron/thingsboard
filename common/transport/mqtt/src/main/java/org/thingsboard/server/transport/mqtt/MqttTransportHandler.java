@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
 import io.netty.handler.codec.mqtt.MqttTopicSubscription;
 import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.extern.slf4j.Slf4j;
@@ -112,10 +113,14 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         log.trace("[{}] Processing msg: {}", sessionId, msg);
-        if (msg instanceof MqttMessage) {
-            processMqttMsg(ctx, (MqttMessage) msg);
-        } else {
-            ctx.close();
+        try {
+            if (msg instanceof MqttMessage) {
+                processMqttMsg(ctx, (MqttMessage) msg);
+            } else {
+                ctx.close();
+            }
+        } finally {
+            ReferenceCountUtil.safeRelease(msg);
         }
     }
 
@@ -404,6 +409,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
     private void processDisconnect(ChannelHandlerContext ctx) {
         ctx.close();
+        log.info("[{}] Client disconnected!", sessionId);
         if (deviceSessionCtx.isConnected()) {
             transportService.process(sessionInfo, AbstractTransportService.getSessionEventMsg(SessionEvent.CLOSED), null);
             transportService.deregisterSession(sessionInfo);

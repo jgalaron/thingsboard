@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import java.lang.reflect.Type;
 import java.util.Map;
 
 import static org.thingsboard.rule.engine.api.TbRelationTypes.SUCCESS;
-import static org.thingsboard.rule.engine.api.util.DonAsynchron.withCallback;
+import static org.thingsboard.common.util.DonAsynchron.withCallback;
 
 @Slf4j
 public abstract class TbAbstractGetEntityDetailsNode<C extends TbAbstractGetEntityDetailsNodeConfiguration> implements TbNode {
@@ -120,6 +120,9 @@ public abstract class TbAbstractGetEntityDetailsNode<C extends TbAbstractGetEnti
     private JsonElement setProperties(ContactBased entity, JsonElement data, EntityDetails entityDetails, String prefix) {
         JsonObject dataAsObject = data.getAsJsonObject();
         switch (entityDetails) {
+            case TITLE:
+                dataAsObject.addProperty(prefix + "title", entity.getName());
+                break;
             case ADDRESS:
                 if (entity.getAddress() != null) {
                     dataAsObject.addProperty(prefix + "address", entity.getAddress());

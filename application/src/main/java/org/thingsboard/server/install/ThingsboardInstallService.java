@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.thingsboard.server.service.component.ComponentDiscoveryService;
-import org.thingsboard.server.service.install.update.DataUpdateService;
 import org.thingsboard.server.service.install.DatabaseUpgradeService;
 import org.thingsboard.server.service.install.EntityDatabaseSchemaService;
 import org.thingsboard.server.service.install.SystemDataLoaderService;
 import org.thingsboard.server.service.install.TsDatabaseSchemaService;
+import org.thingsboard.server.service.install.update.DataUpdateService;
 
 @Service
 @Profile("install")
@@ -116,6 +116,18 @@ public class ThingsboardInstallService {
 
                         databaseUpgradeService.upgradeDatabase("2.3.1");
 
+                    case "2.4.0":
+                        log.info("Upgrading ThingsBoard from version 2.4.0 to 2.4.1 ...");
+
+                    case "2.4.1":
+                        log.info("Upgrading ThingsBoard from version 2.4.1 to 2.4.2 ...");
+
+                        databaseUpgradeService.upgradeDatabase("2.4.1");
+                    case "2.4.2":
+                        log.info("Upgrading ThingsBoard from version 2.4.2 to 2.4.3 ...");
+
+                        databaseUpgradeService.upgradeDatabase("2.4.2");
+
                         log.info("Updating system data...");
 
                         systemDataLoaderService.deleteSystemWidgetBundle("charts");
@@ -130,9 +142,9 @@ public class ThingsboardInstallService {
                         systemDataLoaderService.deleteSystemWidgetBundle("gateway_widgets");
                         systemDataLoaderService.deleteSystemWidgetBundle("input_widgets");
                         systemDataLoaderService.deleteSystemWidgetBundle("date");
+                        systemDataLoaderService.deleteSystemWidgetBundle("entity_admin_widgets");
 
                         systemDataLoaderService.loadSystemWidgets();
-
                         break;
                     default:
                         throw new RuntimeException("Unable to upgrade ThingsBoard, unsupported fromVersion: " + upgradeFromVersion);

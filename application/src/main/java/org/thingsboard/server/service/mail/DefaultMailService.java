@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2019 The Thingsboard Authors
+ * Copyright © 2016-2020 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -210,6 +210,21 @@ public class DefaultMailService implements MailService {
         helper.setSubject(subject);
         helper.setText(body);
         mailSender.send(helper.getMimeMessage());
+    }
+
+    @Override
+    public void sendAccountLockoutEmail( String lockoutEmail, String email, Integer maxFailedLoginAttempts) throws ThingsboardException {
+        String subject = messages.getMessage("account.lockout.subject", null, Locale.US);
+
+        Map<String, Object> model = new HashMap<String, Object>();
+        model.put("lockoutAccount", lockoutEmail);
+        model.put("maxFailedLoginAttempts", maxFailedLoginAttempts);
+        model.put(TARGET_EMAIL, email);
+
+        String message = mergeTemplateIntoString(this.engine,
+                "account.lockout.vm", UTF_8, model);
+
+        sendMail(mailSender, mailFrom, email, subject, message);
     }
 
     private void sendMail(JavaMailSenderImpl mailSender,
